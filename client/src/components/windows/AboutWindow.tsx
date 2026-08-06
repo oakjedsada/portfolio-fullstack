@@ -9,7 +9,7 @@ export function AboutWindow() {
         </div>
         <div>
           <h2 className="text-lg font-bold text-neutral-800">เจษฎาพร</h2>
-          <div className="text-xs text-neutral-500">Backend / PHP-MySQL Developer</div>
+          <div className="text-xs text-neutral-500">Frontend / Backend Developer</div>
         </div>
       </div>
 
@@ -22,8 +22,8 @@ export function AboutWindow() {
       </div>
 
       <p className="mb-3 leading-relaxed text-neutral-700">
-        ทำงานสาย backend เน้น BlingSMS แพลตฟอร์ม bulk SMS — เขียน SQL query,
-        สร้าง dashboard วิเคราะห์ข้อมูล และดูแล data pipeline ทั้งระบบ
+        ทำงานสายพัฒนาเว็บไซต์ทั้ง Frontend และ Backend โดยใช้ React, Next.js, Node.js, PHP และ MySQL
+        มีประสบการณ์ทำงานกับระบบฐานข้อมูลขนาดใหญ่และการสร้าง Dashboard สำหรับวิเคราะห์ข้อมูล 
       </p>
       <p className="leading-relaxed text-neutral-700">
         นอกเวลางานชอบเล่นกับ AI video content และเรียนรู้เรื่องการเงินส่วนบุคคล

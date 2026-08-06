@@ -32,6 +32,7 @@ export interface WindowState {
   icon: string;
   open: boolean;
   minimized: boolean;
+  maximized: boolean;
   x: number;
   y: number;
   width: number;

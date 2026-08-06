@@ -34,7 +34,7 @@ export function ContactWindow() {
       <div className="mb-4 flex flex-wrap gap-2">
         <a
           href="mailto:oakjedsada@gmail.com"
-          className="flex items-center gap-1.5 rounded-full bg-neutral-100 px-3 py-1.5 text-xs text-neutral-600 transition-colors hover:bg-accent/10 hover:text-accent"
+          className="flex items-center gap-1.5 rounded-full bg-neutral-100 px-2 py-1.5 text-xs text-neutral-600 transition-colors hover:bg-accent/10 hover:text-accent"
         >
           📧 oakjedsada@gmail.com
         </a>
@@ -42,7 +42,7 @@ export function ContactWindow() {
           href="https://github.com/oakjedsada"
           target="_blank"
           rel="noreferrer"
-          className="flex items-center gap-1.5 rounded-full bg-neutral-100 px-3 py-1.5 text-xs text-neutral-600 transition-colors hover:bg-accent/10 hover:text-accent"
+          className="flex items-center gap-1.5 rounded-full bg-neutral-100 px-2 py-1.5 text-xs text-neutral-600 transition-colors hover:bg-accent/10 hover:text-accent"
         >
           💻 github.com/oakjedsada
         </a>

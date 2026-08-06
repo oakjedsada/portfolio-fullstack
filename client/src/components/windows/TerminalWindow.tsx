@@ -1,5 +1,6 @@
 import { KeyboardEvent, useEffect, useRef, useState } from "react";
 import { api } from "../../api/client";
+import { useWindowMaximized } from "../../hooks/useWindowMaximized";
 
 interface Line {
   type: "input" | "output";
@@ -84,6 +85,7 @@ async function runCommand(raw: string): Promise<string | null> {
 }
 
 export function TerminalWindow() {
+  const maximized = useWindowMaximized();
   const [lines, setLines] = useState<Line[]>(WELCOME);
   const [input, setInput] = useState("");
   const [history, setHistory] = useState<string[]>([]);
@@ -143,7 +145,9 @@ export function TerminalWindow() {
 
   return (
     <div
-      className="scrollbar-dark -mx-5 -my-4 h-[280px] cursor-text overflow-y-auto bg-[#0e1320] p-4 font-mono text-[13px] text-[#8bff9b]"
+      className={`scrollbar-dark -mx-5 -my-4 cursor-text overflow-y-auto bg-[#0e1320] p-4 font-mono text-[13px] text-[#8bff9b] ${
+        maximized ? "flex-1" : "h-[280px]"
+      }`}
       onClick={() => inputRef.current?.focus()}
     >
       {lines.map((line, i) =>

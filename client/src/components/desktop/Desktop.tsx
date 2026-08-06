@@ -14,14 +14,14 @@ import { CVWindow } from "../windows/CVWindow";
 import { FarmWindow } from "../windows/FarmWindow";
 
 const initialWindows: WindowState[] = [
-  { id: "about", title: "About Me", icon: "🧑‍💻", open: false, minimized: false, x: 120, y: 70, width: 480, zIndex: 10 },
-  { id: "projects", title: "Projects", icon: "📁", open: false, minimized: false, x: 220, y: 100, width: 520, zIndex: 10 },
-  { id: "skills", title: "Skills.exe", icon: "📊", open: false, minimized: false, x: 340, y: 130, width: 460, zIndex: 10 },
-  { id: "terminal", title: "Terminal", icon: "⬛", open: false, minimized: false, x: 460, y: 160, width: 460, zIndex: 10 },
-  { id: "resume", title: "Resume.pdf", icon: "📄", open: false, minimized: false, x: 180, y: 90, width: 380, zIndex: 10 },
-  { id: "contact", title: "Contact", icon: "✉️", open: false, minimized: false, x: 260, y: 120, width: 380, zIndex: 10 },
-  { id: "cv", title: "CV.pdf", icon: "📄", open: false, minimized: false, x: 300, y: 150, width: 1000, zIndex: 10 },
-  { id: "farm", title: "Mini Farm.exe", icon: "🌾", open: false, minimized: false, x: 380, y: 180, width: 380, zIndex: 10 },
+  { id: "about", title: "About Me", icon: "🧑‍💻", open: false, minimized: false, maximized: false, x: 120, y: 70, width: 480, zIndex: 10 },
+  { id: "projects", title: "Projects", icon: "📁", open: false, minimized: false, maximized: false, x: 220, y: 100, width: 520, zIndex: 10 },
+  { id: "skills", title: "Skills.exe", icon: "📊", open: false, minimized: false, maximized: false, x: 340, y: 130, width: 460, zIndex: 10 },
+  { id: "terminal", title: "Terminal", icon: "⬛", open: false, minimized: false, maximized: false, x: 460, y: 160, width: 460, zIndex: 10 },
+  { id: "resume", title: "Resume.pdf", icon: "📄", open: false, minimized: false, maximized: false, x: 180, y: 90, width: 380, zIndex: 10 },
+  { id: "contact", title: "Contact", icon: "✉️", open: false, minimized: false, maximized: false, x: 260, y: 120, width: 380, zIndex: 10 },
+  { id: "cv", title: "CV.pdf", icon: "📄", open: false, minimized: false, maximized: false, x: 300, y: 150, width: 1000, zIndex: 10 },
+  { id: "farm", title: "Mini Farm.exe", icon: "🌾", open: false, minimized: false, maximized: false, x: 380, y: 180, width: 380, zIndex: 10 },
 ];
 
 const windowContent: Record<WindowId, JSX.Element> = {
@@ -56,6 +56,13 @@ export function Desktop() {
     setWindows((prev) => prev.map((w) => (w.id === id ? { ...w, minimized: true } : w)));
   }
 
+  function toggleMaximizeWindow(id: WindowId) {
+    setZCounter((z) => z + 1);
+    setWindows((prev) =>
+      prev.map((w) => (w.id === id ? { ...w, maximized: !w.maximized, zIndex: zCounter + 1 } : w))
+    );
+  }
+
   function focusWindow(id: WindowId) {
     setZCounter((z) => z + 1);
     setWindows((prev) => prev.map((w) => (w.id === id ? { ...w, zIndex: zCounter + 1 } : w)));
@@ -83,6 +90,7 @@ export function Desktop() {
           state={w}
           onClose={() => closeWindow(w.id)}
           onMinimize={() => minimizeWindow(w.id)}
+          onMaximize={() => toggleMaximizeWindow(w.id)}
           onFocus={() => focusWindow(w.id)}
           onMove={(x, y) => moveWindow(w.id, x, y)}
         >
