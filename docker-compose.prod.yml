@@ -1,0 +1,54 @@
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: portfolio
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # No published port — only reachable from other containers on this network
+
+  api:
+    build: ./server
+    restart: unless-stopped
+    environment:
+      ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=portfolio;Username=postgres;Password=${DB_PASSWORD}"
+      FrontendUrl: "https://${DOMAIN}"
+      ASPNETCORE_URLS: "http://+:8080"
+      ASPNETCORE_ENVIRONMENT: Production
+      Smtp__User: "${SMTP_USER}"
+      Smtp__Password: "${SMTP_PASSWORD}"
+      Smtp__NotifyTo: "${SMTP_NOTIFY_TO}"
+    depends_on:
+      - db
+
+  client:
+    build:
+      context: ./client
+      args:
+        VITE_API_URL: "https://api.${DOMAIN}"
+    restart: unless-stopped
+    depends_on:
+      - api
+
+  # Reverse proxy: terminates HTTPS and issues Let's Encrypt certs automatically
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+      - client
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

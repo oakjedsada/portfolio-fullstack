@@ -1,0 +1,10 @@
+# Replace yourdomain.com with your actual domain in .env (DOMAIN=...)
+# Caddy issues and renews Let's Encrypt certificates automatically — no manual cert setup needed.
+
+{$DOMAIN} {
+    reverse_proxy client:3000
+}
+
+api.{$DOMAIN} {
+    reverse_proxy api:8080
+}

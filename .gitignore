@@ -1,0 +1,15 @@
+# Node
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Environment secrets (never commit real values)
+.env
+client/.env
+
+# .NET
+server/bin/
+server/obj/
+
+# OS
+.DS_Store
