@@ -36,7 +36,7 @@ export function SkillsWindow() {
           <span className="w-24 flex-shrink-0 truncate text-xs font-medium text-neutral-600">{s.name}</span>
           <div className="h-2 flex-1 overflow-hidden rounded-full bg-neutral-200">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-accent to-accent2 transition-[width] duration-700 ease-out"
+              className="h-full rounded-full bg-accent transition-[width] duration-700 ease-out"
               style={{ width: `${s.proficiency}%` }}
             />
           </div>

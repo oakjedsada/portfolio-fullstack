@@ -26,8 +26,7 @@ export type WindowId =
   | "cv"
   | "farm";
 
-export interface WindowState {
-  id: WindowId;
+export interface WindowLike {
   title: string;
   icon: string;
   open: boolean;
@@ -37,4 +36,25 @@ export interface WindowState {
   y: number;
   width: number;
   zIndex: number;
+}
+
+export interface WindowState extends WindowLike {
+  id: WindowId;
+  iconX: number;
+  iconY: number;
+}
+
+export interface FolderState extends WindowLike {
+  id: string;
+  parentId: string | null;
+  iconX: number;
+  iconY: number;
+}
+
+export interface TextFileState extends WindowLike {
+  id: string;
+  parentId: string | null;
+  iconX: number;
+  iconY: number;
+  content: string;
 }

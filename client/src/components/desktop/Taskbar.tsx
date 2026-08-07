@@ -1,13 +1,18 @@
 import { useEffect, useState } from "react";
-import type { WindowState } from "../../types";
 
-interface TaskbarProps {
-  windows: WindowState[];
-  onToggleStart: () => void;
-  onSelectWindow: (id: WindowState["id"]) => void;
+export interface TaskbarItem {
+  id: string;
+  icon: string;
+  title: string;
 }
 
-export function Taskbar({ windows, onToggleStart, onSelectWindow }: TaskbarProps) {
+interface TaskbarProps {
+  items: TaskbarItem[];
+  onToggleStart: () => void;
+  onSelectItem: (id: string) => void;
+}
+
+export function Taskbar({ items, onToggleStart, onSelectItem }: TaskbarProps) {
   const [now, setNow] = useState(new Date());
 
   useEffect(() => {
@@ -28,17 +33,15 @@ export function Taskbar({ windows, onToggleStart, onSelectWindow }: TaskbarProps
       </button>
       <div className="h-7 w-px bg-white/10" />
 
-      {windows
-        .filter((w) => w.open)
-        .map((w) => (
-          <button
-            key={w.id}
-            className="flex items-center gap-1.5 rounded-md bg-white/[0.08] px-3 py-1.5 text-xs text-white transition-colors hover:bg-white/[0.16] active:bg-white/[0.22]"
-            onClick={() => onSelectWindow(w.id)}
-          >
-            {w.icon} {w.title}
-          </button>
-        ))}
+      {items.map((item) => (
+        <button
+          key={item.id}
+          className="flex items-center gap-1.5 rounded-md bg-white/[0.08] px-3 py-1.5 text-xs text-white transition-colors hover:bg-white/[0.16] active:bg-white/[0.22]"
+          onClick={() => onSelectItem(item.id)}
+        >
+          {item.icon} {item.title}
+        </button>
+      ))}
 
       <div className="ml-auto pr-1.5 text-right text-sm text-white">
         <div className="tabular-nums">{timeStr}</div>

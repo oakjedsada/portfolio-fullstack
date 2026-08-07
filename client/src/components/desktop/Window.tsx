@@ -1,10 +1,10 @@
 import { ReactNode } from "react";
 import { useDraggable } from "../../hooks/useDraggable";
 import { WindowMaximizedContext } from "../../hooks/useWindowMaximized";
-import type { WindowState } from "../../types";
+import type { WindowLike } from "../../types";
 
 interface WindowProps {
-  state: WindowState;
+  state: WindowLike;
   onClose: () => void;
   onMinimize: () => void;
   onMaximize: () => void;

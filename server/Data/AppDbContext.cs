@@ -64,10 +64,11 @@ public class AppDbContext : DbContext
         builder.Entity<Skill>().HasData(
             new Skill { Id = 1, Name = "PHP", Proficiency = 80, Category = "Backend", SortOrder = 1 },
             new Skill { Id = 2, Name = "MySQL", Proficiency = 75, Category = "Database", SortOrder = 2 },
-            new Skill { Id = 3, Name = "Chart.js", Proficiency = 95, Category = "Frontend", SortOrder = 3 },
-            new Skill { Id = 4, Name = "Bootstrap", Proficiency = 55, Category = "Frontend", SortOrder = 4 },
-            new Skill { Id = 5, Name = "C# / .NET", Proficiency = 40, Category = "Backend", SortOrder = 5 },
-            new Skill { Id = 6, Name = "Flask", Proficiency = 50, Category = "Backend", SortOrder = 6 }
+            new Skill { Id = 3, Name = "JavaScript", Proficiency = 65, Category = "Frontend", SortOrder = 3 },
+            new Skill { Id = 4, Name = "Tailwind CSS / Bootstrap", Proficiency = 80, Category = "Frontend", SortOrder = 4 },
+            new Skill { Id = 5, Name = "C# / .NET", Proficiency = 50, Category = "Backend", SortOrder = 5 },
+            new Skill { Id = 6, Name = "React", Proficiency = 40, Category = "Frontend", SortOrder = 6 },
+            new Skill { Id = 7, Name = "PostgreSQL", Proficiency = 60, Category = "Database", SortOrder = 7 }
         );
     }
 }

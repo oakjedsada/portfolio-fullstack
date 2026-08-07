@@ -1,4 +1,4 @@
-const focusTags = ["Backend", "PHP / MySQL", "Data Pipeline", "Dashboards"];
+const focusTags = ["React", "Next.js", "Node.js", "PHP","C#.NET", "MySQL", "PostgreSQL","HeidiSQL","Tailwind CSS", "TypeScript", "JavaScript"];
 
 export function AboutWindow() {
   return (
@@ -22,12 +22,12 @@ export function AboutWindow() {
       </div>
 
       <p className="mb-3 leading-relaxed text-neutral-700">
-        ทำงานสายพัฒนาเว็บไซต์ทั้ง Frontend และ Backend โดยใช้ React, Next.js, Node.js, PHP และ MySQL
-        มีประสบการณ์ทำงานกับระบบฐานข้อมูลขนาดใหญ่และการสร้าง Dashboard สำหรับวิเคราะห์ข้อมูล 
+        ทำงานสายพัฒนาเว็บไซต์ทั้ง Frontend (Smarty Template (.tpl) , JavaScript , Tailwind CSS) และ Backend(PHP) และ Database(HeidiSQL)
+        โดยมีประสบการณ์ด้านการเขียน React, Next.js, Node.js, C#.NET, MySQL และ PostgreSQL ในระดับนึง เพราะกำลังศึกษาและพยายามพัฒนาตัวเองอยู่ตลอดเวลา และมีความสนใจในเทคโนโลยีใหม่ ๆ อยู่เสมอ
       </p>
       <p className="leading-relaxed text-neutral-700">
-        นอกเวลางานชอบเล่นกับ AI video content และเรียนรู้เรื่องการเงินส่วนบุคคล
-        ผ่าน SET e-Learning
+        นอกเวลางานชอบเล่นเกม บอร์ดเกม โป๊กเกอร์ และเล่นกีฬา เช่น ฟุตบอล บาสเกตบอล และว่ายน้ำ
+
       </p>
     </div>
   );
