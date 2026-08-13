@@ -13,3 +13,6 @@ server/obj/
 
 # OS
 .DS_Store
+
+# Editor/IDE
+.claude/

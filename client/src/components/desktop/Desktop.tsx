@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { WindowId, WindowState, FolderState, TextFileState } from "../../types";
 import { DesktopIcon } from "./DesktopIcon";
+import type { IconSize } from "./DesktopIcon";
 import { Window } from "./Window";
 import { Taskbar } from "./Taskbar";
 import type { TaskbarItem } from "./Taskbar";
@@ -8,6 +9,7 @@ import { StartMenu } from "./StartMenu";
 import { ContextMenu } from "./ContextMenu";
 import type { ContextMenuItem } from "./ContextMenu";
 import { FolderContents } from "./FolderContents";
+import { BackgroundPicker } from "./BackgroundPicker";
 import { AboutWindow } from "../windows/AboutWindow";
 import { ProjectsWindow } from "../windows/ProjectsWindow";
 import { SkillsWindow } from "../windows/SkillsWindow";
@@ -26,6 +28,12 @@ const ICONS_PER_COL = 6;
 function defaultIconPos(index: number): { iconX: number; iconY: number } {
   const col = Math.floor(index / ICONS_PER_COL);
   const row = index % ICONS_PER_COL;
+  return { iconX: 20 + col * ICON_COL_GAP, iconY: 20 + row * ICON_ROW_GAP };
+}
+
+function snapToGrid(x: number, y: number): { iconX: number; iconY: number } {
+  const col = Math.max(0, Math.round((x - 20) / ICON_COL_GAP));
+  const row = Math.max(0, Math.round((y - 20) / ICON_ROW_GAP));
   return { iconX: 20 + col * ICON_COL_GAP, iconY: 20 + row * ICON_ROW_GAP };
 }
 
@@ -49,6 +57,17 @@ interface SavedWindowIcon {
 }
 
 const WINDOW_ICONS_STORAGE_KEY = "jedos-window-icons";
+const BG_COLOR_STORAGE_KEY = "jedos-bg-color";
+
+const ICON_SIZE_STORAGE_KEY = "jedos-icon-size";
+
+function loadIconSize(): IconSize {
+  const raw = localStorage.getItem(ICON_SIZE_STORAGE_KEY);
+  return raw === "small" || raw === "medium" || raw === "large" ? raw : "medium";
+}
+
+const ALIGN_TO_GRID_STORAGE_KEY = "jedos-align-to-grid";
+const AUTO_ARRANGE_STORAGE_KEY = "jedos-auto-arrange";
 
 function loadInitialWindows(): WindowState[] {
   try {
@@ -93,6 +112,7 @@ interface SavedFolder {
   parentId: string | null;
   iconX: number;
   iconY: number;
+  modifiedAt?: number;
 }
 
 const FOLDERS_STORAGE_KEY = "jedos-folders";
@@ -111,6 +131,7 @@ function loadFolders(): FolderState[] {
       parentId: f.parentId ?? null,
       iconX: f.iconX,
       iconY: f.iconY,
+      modifiedAt: f.modifiedAt ?? 0,
       open: false,
       minimized: false,
       maximized: false,
@@ -131,6 +152,7 @@ function saveFolders(folders: FolderState[]) {
     parentId: f.parentId,
     iconX: f.iconX,
     iconY: f.iconY,
+    modifiedAt: f.modifiedAt,
   }));
   localStorage.setItem(FOLDERS_STORAGE_KEY, JSON.stringify(payload));
 }
@@ -144,6 +166,7 @@ interface SavedTextFile {
   iconX: number;
   iconY: number;
   content: string;
+  modifiedAt?: number;
 }
 
 const TEXTFILES_STORAGE_KEY = "jedos-textfiles";
@@ -163,6 +186,7 @@ function loadTextFiles(): TextFileState[] {
       iconX: f.iconX,
       iconY: f.iconY,
       content: f.content,
+      modifiedAt: f.modifiedAt ?? 0,
       open: false,
       minimized: false,
       maximized: false,
@@ -184,8 +208,49 @@ function saveTextFiles(textFiles: TextFileState[]) {
     iconX: f.iconX,
     iconY: f.iconY,
     content: f.content,
+    modifiedAt: f.modifiedAt,
   }));
   localStorage.setItem(TEXTFILES_STORAGE_KEY, JSON.stringify(payload));
+}
+
+// Sortable metadata for "Sort by": item type groups (apps, then folders,
+// then files) and a folder's "size" is how many items it contains (recursively).
+type SortBy = "name" | "type" | "size" | "date";
+const SORT_STORAGE_KEY = "jedos-sort-by";
+
+function folderItemCount(folderId: string, folders: FolderState[], textFiles: TextFileState[]): number {
+  const childFolders = folders.filter((f) => f.parentId === folderId);
+  const childFiles = textFiles.filter((f) => f.parentId === folderId);
+  const nested = childFolders.reduce((sum, cf) => sum + folderItemCount(cf.id, folders, textFiles), 0);
+  return childFolders.length + childFiles.length + nested;
+}
+
+interface SortableItem {
+  id: string;
+  name: string;
+  kind: number; // 0 = app, 1 = folder, 2 = text file
+  size: number;
+  modifiedAt: number;
+}
+
+function sortItems(items: SortableItem[], sortBy: SortBy | null): SortableItem[] {
+  if (!sortBy) return items;
+  const sorted = [...items];
+  switch (sortBy) {
+    case "name":
+      sorted.sort((a, b) => a.name.localeCompare(b.name));
+      break;
+    case "type":
+      sorted.sort((a, b) => a.kind - b.kind || a.name.localeCompare(b.name));
+      break;
+    case "size":
+      sorted.sort((a, b) => a.size - b.size || a.name.localeCompare(b.name));
+      break;
+    case "date":
+      sorted.sort((a, b) => b.modifiedAt - a.modifiedAt || a.name.localeCompare(b.name));
+      break;
+  }
+  return sorted;
 }
 
 export function Desktop() {
@@ -196,6 +261,68 @@ export function Desktop() {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
   const [startOpen, setStartOpen] = useState(false);
   const [zCounter, setZCounter] = useState(100);
+  const [bgColor, setBgColor] = useState<string | null>(() => localStorage.getItem(BG_COLOR_STORAGE_KEY));
+  const [bgPickerOpen, setBgPickerOpen] = useState(false);
+  const [iconSize, setIconSize] = useState<IconSize>(() => loadIconSize());
+  const [alignToGrid, setAlignToGrid] = useState(() => localStorage.getItem(ALIGN_TO_GRID_STORAGE_KEY) !== "false");
+  const [autoArrange, setAutoArrange] = useState(() => localStorage.getItem(AUTO_ARRANGE_STORAGE_KEY) === "true");
+  const [sortBy, setSortBy] = useState<SortBy | null>(() => {
+    const raw = localStorage.getItem(SORT_STORAGE_KEY);
+    return raw === "name" || raw === "type" || raw === "size" || raw === "date" ? raw : null;
+  });
+
+  function applyBackground(background: string) {
+    setBgColor(background);
+    localStorage.setItem(BG_COLOR_STORAGE_KEY, background);
+  }
+
+  function sortDesktopBy(criterion: SortBy) {
+    setSortBy(criterion);
+    setAutoArrange(true);
+  }
+
+  useEffect(() => {
+    localStorage.setItem(ICON_SIZE_STORAGE_KEY, iconSize);
+  }, [iconSize]);
+
+  useEffect(() => {
+    localStorage.setItem(ALIGN_TO_GRID_STORAGE_KEY, String(alignToGrid));
+  }, [alignToGrid]);
+
+  useEffect(() => {
+    localStorage.setItem(AUTO_ARRANGE_STORAGE_KEY, String(autoArrange));
+  }, [autoArrange]);
+
+  useEffect(() => {
+    if (sortBy) localStorage.setItem(SORT_STORAGE_KEY, sortBy);
+  }, [sortBy]);
+
+  // While auto-arrange is on, every top-level desktop icon's position is
+  // computed fresh (apps, then folders, then text files, ordered by sortBy
+  // if one is set) instead of using its stored iconX/iconY, and dragging is
+  // disabled.
+  const autoArrangePositions = autoArrange
+    ? new Map<string, { iconX: number; iconY: number }>(
+        sortItems(
+          [
+            ...windows.map((w) => ({ id: w.id as string, name: w.title, kind: 0, size: 0, modifiedAt: 0 })),
+            ...folders
+              .filter((f) => f.parentId === null)
+              .map((f) => ({
+                id: f.id,
+                name: f.title,
+                kind: 1,
+                size: folderItemCount(f.id, folders, textFiles),
+                modifiedAt: f.modifiedAt,
+              })),
+            ...textFiles
+              .filter((f) => f.parentId === null)
+              .map((f) => ({ id: f.id, name: f.title, kind: 2, size: f.content.length, modifiedAt: f.modifiedAt })),
+          ],
+          sortBy
+        ).map((item, i) => [item.id, defaultIconPos(i)])
+      )
+    : null;
 
   useEffect(() => {
     saveWindowIconPositions(windows);
@@ -245,6 +372,12 @@ export function Desktop() {
     setWindows((prev) => prev.map((w) => (w.id === id ? { ...w, iconX, iconY } : w)));
   }
 
+  function moveIconEnd(id: WindowId, x: number, y: number) {
+    if (!alignToGrid) return;
+    const { iconX, iconY } = snapToGrid(x, y);
+    setWindows((prev) => prev.map((w) => (w.id === id ? { ...w, iconX, iconY } : w)));
+  }
+
   function createFolder(parentId: string | null, clientX = 0, clientY = 0) {
     const id = `folder-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     setZCounter((z) => z + 1);
@@ -257,6 +390,7 @@ export function Desktop() {
         parentId,
         iconX: Math.max(0, clientX - 20),
         iconY: Math.max(0, clientY - 10),
+        modifiedAt: Date.now(),
         open: false,
         minimized: false,
         maximized: false,
@@ -304,8 +438,14 @@ export function Desktop() {
     setFolders((prev) => prev.map((f) => (f.id === id ? { ...f, iconX, iconY } : f)));
   }
 
+  function moveFolderIconEnd(id: string, x: number, y: number) {
+    if (!alignToGrid) return;
+    const { iconX, iconY } = snapToGrid(x, y);
+    setFolders((prev) => prev.map((f) => (f.id === id ? { ...f, iconX, iconY } : f)));
+  }
+
   function commitFolderRename(id: string, name: string) {
-    setFolders((prev) => prev.map((f) => (f.id === id ? { ...f, title: name } : f)));
+    setFolders((prev) => prev.map((f) => (f.id === id ? { ...f, title: name, modifiedAt: Date.now() } : f)));
     setRenamingItemId(null);
   }
 
@@ -345,6 +485,7 @@ export function Desktop() {
         parentId,
         iconX: Math.max(0, clientX - 20),
         iconY: Math.max(0, clientY - 10),
+        modifiedAt: Date.now(),
         open: false,
         minimized: false,
         maximized: false,
@@ -392,13 +533,19 @@ export function Desktop() {
     setTextFiles((prev) => prev.map((f) => (f.id === id ? { ...f, iconX, iconY } : f)));
   }
 
+  function moveTextFileIconEnd(id: string, x: number, y: number) {
+    if (!alignToGrid) return;
+    const { iconX, iconY } = snapToGrid(x, y);
+    setTextFiles((prev) => prev.map((f) => (f.id === id ? { ...f, iconX, iconY } : f)));
+  }
+
   function commitTextFileRename(id: string, name: string) {
-    setTextFiles((prev) => prev.map((f) => (f.id === id ? { ...f, title: name } : f)));
+    setTextFiles((prev) => prev.map((f) => (f.id === id ? { ...f, title: name, modifiedAt: Date.now() } : f)));
     setRenamingItemId(null);
   }
 
   function updateTextFileContent(id: string, content: string) {
-    setTextFiles((prev) => prev.map((f) => (f.id === id ? { ...f, content } : f)));
+    setTextFiles((prev) => prev.map((f) => (f.id === id ? { ...f, content, modifiedAt: Date.now() } : f)));
   }
 
   function deleteTextFile(id: string, name: string) {
@@ -424,6 +571,7 @@ export function Desktop() {
   return (
     <div
       className="relative h-screen w-screen overflow-hidden bg-gradient-to-br from-wall1 to-wall2"
+      style={bgColor ? { background: bgColor } : undefined}
       onContextMenu={(e) => {
         e.preventDefault();
         const clientX = e.clientX;
@@ -432,8 +580,29 @@ export function Desktop() {
           x: clientX,
           y: clientY,
           items: [
+            {
+              label: "View",
+              children: [
+                { label: "Large icons", checked: iconSize === "large", onClick: () => setIconSize("large") },
+                { label: "Medium icons", checked: iconSize === "medium", onClick: () => setIconSize("medium") },
+                { label: "Small icons", checked: iconSize === "small", onClick: () => setIconSize("small") },
+                { label: "Auto arrange icons", checked: autoArrange, onClick: () => setAutoArrange((v) => !v) },
+                { label: "Align icons to grid", checked: alignToGrid, onClick: () => setAlignToGrid((v) => !v) },
+              ],
+            },
+            {
+              label: "Sort by",
+              children: [
+                { label: "Name", checked: sortBy === "name", onClick: () => sortDesktopBy("name") },
+                { label: "Size", checked: sortBy === "size", onClick: () => sortDesktopBy("size") },
+                { label: "Item type", checked: sortBy === "type", onClick: () => sortDesktopBy("type") },
+                { label: "Date modified", checked: sortBy === "date", onClick: () => sortDesktopBy("date") },
+              ],
+            },
+            { label: "Refresh", onClick: () => window.location.reload() },
             { label: "New Folder", onClick: () => createFolder(null, clientX, clientY) },
             { label: "New Text File", onClick: () => createTextFile(null, clientX, clientY) },
+            { label: "Change Background", onClick: () => setBgPickerOpen(true) },
           ],
         });
       }}
@@ -442,63 +611,81 @@ export function Desktop() {
 
       {/* Desktop icons */}
       <div className="absolute left-0 right-0 top-0 bottom-[52px]">
-        {windows.map((w) => (
-          <DesktopIcon
-            key={w.id}
-            icon={w.icon}
-            label={w.title}
-            x={w.iconX}
-            y={w.iconY}
-            onOpen={() => openWindow(w.id)}
-            onMove={(x, y) => moveIcon(w.id, x, y)}
-          />
-        ))}
-        {folders.filter((f) => f.parentId === null).map((f) => (
-          <DesktopIcon
-            key={f.id}
-            icon={f.icon}
-            label={f.title}
-            x={f.iconX}
-            y={f.iconY}
-            onOpen={() => openFolder(f.id)}
-            onMove={(x, y) => moveFolderIcon(f.id, x, y)}
-            editing={renamingItemId === f.id}
-            onRenameCommit={(name) => commitFolderRename(f.id, name)}
-            onContextMenu={(e) =>
-              setContextMenu({
-                x: e.clientX,
-                y: e.clientY,
-                items: [
-                  { label: "Rename", onClick: () => setRenamingItemId(f.id) },
-                  { label: "Delete", danger: true, onClick: () => deleteFolder(f.id) },
-                ],
-              })
-            }
-          />
-        ))}
-        {textFiles.filter((f) => f.parentId === null).map((f) => (
-          <DesktopIcon
-            key={f.id}
-            icon={f.icon}
-            label={f.title}
-            x={f.iconX}
-            y={f.iconY}
-            onOpen={() => openTextFile(f.id)}
-            onMove={(x, y) => moveTextFileIcon(f.id, x, y)}
-            editing={renamingItemId === f.id}
-            onRenameCommit={(name) => commitTextFileRename(f.id, name)}
-            onContextMenu={(e) =>
-              setContextMenu({
-                x: e.clientX,
-                y: e.clientY,
-                items: [
-                  { label: "Rename", onClick: () => setRenamingItemId(f.id) },
-                  { label: "Delete", danger: true, onClick: () => deleteTextFile(f.id, f.title) },
-                ],
-              })
-            }
-          />
-        ))}
+        {windows.map((w) => {
+          const pos = autoArrangePositions?.get(w.id) ?? { iconX: w.iconX, iconY: w.iconY };
+          return (
+            <DesktopIcon
+              key={w.id}
+              icon={w.icon}
+              label={w.title}
+              x={pos.iconX}
+              y={pos.iconY}
+              size={iconSize}
+              draggable={!autoArrange}
+              onOpen={() => openWindow(w.id)}
+              onMove={(x, y) => moveIcon(w.id, x, y)}
+              onMoveEnd={(x, y) => moveIconEnd(w.id, x, y)}
+            />
+          );
+        })}
+        {folders.filter((f) => f.parentId === null).map((f) => {
+          const pos = autoArrangePositions?.get(f.id) ?? { iconX: f.iconX, iconY: f.iconY };
+          return (
+            <DesktopIcon
+              key={f.id}
+              icon={f.icon}
+              label={f.title}
+              x={pos.iconX}
+              y={pos.iconY}
+              size={iconSize}
+              draggable={!autoArrange}
+              onOpen={() => openFolder(f.id)}
+              onMove={(x, y) => moveFolderIcon(f.id, x, y)}
+              onMoveEnd={(x, y) => moveFolderIconEnd(f.id, x, y)}
+              editing={renamingItemId === f.id}
+              onRenameCommit={(name) => commitFolderRename(f.id, name)}
+              onContextMenu={(e) =>
+                setContextMenu({
+                  x: e.clientX,
+                  y: e.clientY,
+                  items: [
+                    { label: "Rename", onClick: () => setRenamingItemId(f.id) },
+                    { label: "Delete", danger: true, onClick: () => deleteFolder(f.id) },
+                  ],
+                })
+              }
+            />
+          );
+        })}
+        {textFiles.filter((f) => f.parentId === null).map((f) => {
+          const pos = autoArrangePositions?.get(f.id) ?? { iconX: f.iconX, iconY: f.iconY };
+          return (
+            <DesktopIcon
+              key={f.id}
+              icon={f.icon}
+              label={f.title}
+              x={pos.iconX}
+              y={pos.iconY}
+              size={iconSize}
+              draggable={!autoArrange}
+              onOpen={() => openTextFile(f.id)}
+              onMove={(x, y) => moveTextFileIcon(f.id, x, y)}
+              onMoveEnd={(x, y) => moveTextFileIconEnd(f.id, x, y)}
+              editing={renamingItemId === f.id}
+              onRenameCommit={(name) => commitTextFileRename(f.id, name)}
+              onContextMenu={(e) =>
+                setContextMenu({
+                  x: e.clientX,
+                  y: e.clientY,
+                  items: [
+                    { label: "Rename", onClick: () => setRenamingItemId(f.id) },
+                    { label: "Delete", danger: true, onClick: () => deleteTextFile(f.id, f.title) },
+                  ],
+                })
+              }
+            />
+          );
+        })}
       </div>
 
       {/* Windows */}
@@ -530,6 +717,7 @@ export function Desktop() {
             folders={folders}
             textFiles={textFiles}
             renamingItemId={renamingItemId}
+            iconSize={iconSize}
             onOpenFolder={openFolder}
             onOpenTextFile={openTextFile}
             onRenameStart={setRenamingItemId}
@@ -566,6 +754,17 @@ export function Desktop() {
           y={contextMenu.y}
           items={contextMenu.items}
           onClose={() => setContextMenu(null)}
+        />
+      )}
+
+      {bgPickerOpen && (
+        <BackgroundPicker
+          current={bgColor}
+          onSelect={(bg) => {
+            applyBackground(bg);
+            setBgPickerOpen(false);
+          }}
+          onClose={() => setBgPickerOpen(false)}
         />
       )}
     </div>

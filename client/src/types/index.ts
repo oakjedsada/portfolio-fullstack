@@ -49,6 +49,7 @@ export interface FolderState extends WindowLike {
   parentId: string | null;
   iconX: number;
   iconY: number;
+  modifiedAt: number;
 }
 
 export interface TextFileState extends WindowLike {
@@ -57,4 +58,5 @@ export interface TextFileState extends WindowLike {
   iconX: number;
   iconY: number;
   content: string;
+  modifiedAt: number;
 }

@@ -1,6 +1,7 @@
 import type { MouseEvent } from "react";
 import type { FolderState, TextFileState } from "../../types";
 import { DesktopIcon } from "./DesktopIcon";
+import type { IconSize } from "./DesktopIcon";
 import type { ContextMenuItem } from "./ContextMenu";
 import { useWindowMaximized } from "../../hooks/useWindowMaximized";
 
@@ -9,6 +10,7 @@ interface FolderContentsProps {
   folders: FolderState[];
   textFiles: TextFileState[];
   renamingItemId: string | null;
+  iconSize: IconSize;
   onOpenFolder: (id: string) => void;
   onOpenTextFile: (id: string) => void;
   onRenameStart: (id: string) => void;
@@ -26,6 +28,7 @@ export function FolderContents({
   folders,
   textFiles,
   renamingItemId,
+  iconSize,
   onOpenFolder,
   onOpenTextFile,
   onRenameStart,
@@ -73,6 +76,7 @@ export function FolderContents({
           key={f.id}
           icon={f.icon}
           label={f.title}
+          size={iconSize}
           onOpen={() => onOpenFolder(f.id)}
           editing={renamingItemId === f.id}
           onRenameCommit={(name) => onRenameFolder(f.id, name)}
@@ -93,6 +97,7 @@ export function FolderContents({
           key={f.id}
           icon={f.icon}
           label={f.title}
+          size={iconSize}
           onOpen={() => onOpenTextFile(f.id)}
           editing={renamingItemId === f.id}
           onRenameCommit={(name) => onRenameTextFile(f.id, name)}
