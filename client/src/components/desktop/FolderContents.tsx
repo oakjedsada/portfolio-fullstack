@@ -2,6 +2,7 @@ import type { MouseEvent } from "react";
 import type { FolderState, TextFileState } from "../../types";
 import { DesktopIcon } from "./DesktopIcon";
 import type { IconSize } from "./DesktopIcon";
+import { ICON_BOX_WIDTH } from "./DesktopIcon";
 import type { ContextMenuItem } from "./ContextMenu";
 import { useWindowMaximized } from "../../hooks/useWindowMaximized";
 
@@ -68,7 +69,8 @@ export function FolderContents({
 
   return (
     <div
-      className={`-mx-5 -my-4 grid grid-cols-3 content-start gap-3 overflow-y-auto p-4 ${sizeClass}`}
+      className={`-mx-5 -my-4 grid content-start gap-3 overflow-y-auto p-4 ${sizeClass}`}
+      style={{ gridTemplateColumns: `repeat(auto-fill, ${ICON_BOX_WIDTH[iconSize]}px)` }}
       onContextMenu={openMenu}
     >
       {childFolders.map((f) => (

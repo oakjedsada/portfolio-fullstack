@@ -4,7 +4,7 @@ import { DesktopIcon } from "./DesktopIcon";
 import type { IconSize } from "./DesktopIcon";
 import { Window } from "./Window";
 import { Taskbar } from "./Taskbar";
-import type { TaskbarItem } from "./Taskbar";
+import type { TaskbarItem, TaskbarIcon } from "./Taskbar";
 import { StartMenu } from "./StartMenu";
 import { ContextMenu } from "./ContextMenu";
 import type { ContextMenuItem } from "./ContextMenu";
@@ -39,7 +39,7 @@ function snapToGrid(x: number, y: number): { iconX: number; iconY: number } {
 
 const initialWindows: WindowState[] = [
   { id: "about", title: "About Me", icon: "🧑‍💻", open: false, minimized: false, maximized: false, x: 120, y: 70, width: 480, zIndex: 10, ...defaultIconPos(0) },
-  { id: "projects", title: "Projects", icon: "📁", open: false, minimized: false, maximized: false, x: 220, y: 100, width: 520, zIndex: 10, ...defaultIconPos(1) },
+  { id: "projects", title: "Projects", icon: "💼", open: false, minimized: false, maximized: false, x: 220, y: 100, width: 520, zIndex: 10, ...defaultIconPos(1) },
   { id: "skills", title: "Skills.exe", icon: "📊", open: false, minimized: false, maximized: false, x: 340, y: 130, width: 460, zIndex: 10, ...defaultIconPos(2) },
   { id: "terminal", title: "Terminal", icon: "⬛", open: false, minimized: false, maximized: false, x: 460, y: 160, width: 460, zIndex: 10, ...defaultIconPos(3) },
   { id: "resume", title: "Resume.pdf", icon: "📄", open: false, minimized: false, maximized: false, x: 180, y: 90, width: 380, zIndex: 10, ...defaultIconPos(4) },
@@ -68,6 +68,19 @@ function loadIconSize(): IconSize {
 
 const ALIGN_TO_GRID_STORAGE_KEY = "jedos-align-to-grid";
 const AUTO_ARRANGE_STORAGE_KEY = "jedos-auto-arrange";
+
+const PINNED_TASKBAR_STORAGE_KEY = "jedos-pinned-taskbar";
+
+function loadPinnedTaskbar(): string[] {
+  try {
+    const raw = localStorage.getItem(PINNED_TASKBAR_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string") : [];
+  } catch {
+    return [];
+  }
+}
 
 function loadInitialWindows(): WindowState[] {
   try {
@@ -266,6 +279,7 @@ export function Desktop() {
   const [iconSize, setIconSize] = useState<IconSize>(() => loadIconSize());
   const [alignToGrid, setAlignToGrid] = useState(() => localStorage.getItem(ALIGN_TO_GRID_STORAGE_KEY) !== "false");
   const [autoArrange, setAutoArrange] = useState(() => localStorage.getItem(AUTO_ARRANGE_STORAGE_KEY) === "true");
+  const [pinnedTaskbarIds, setPinnedTaskbarIds] = useState<string[]>(() => loadPinnedTaskbar());
   const [sortBy, setSortBy] = useState<SortBy | null>(() => {
     const raw = localStorage.getItem(SORT_STORAGE_KEY);
     return raw === "name" || raw === "type" || raw === "size" || raw === "date" ? raw : null;
@@ -292,6 +306,18 @@ export function Desktop() {
   useEffect(() => {
     localStorage.setItem(AUTO_ARRANGE_STORAGE_KEY, String(autoArrange));
   }, [autoArrange]);
+
+  useEffect(() => {
+    localStorage.setItem(PINNED_TASKBAR_STORAGE_KEY, JSON.stringify(pinnedTaskbarIds));
+  }, [pinnedTaskbarIds]);
+
+  function pinToTaskbar(id: string) {
+    setPinnedTaskbarIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+  }
+
+  function unpinFromTaskbar(id: string) {
+    setPinnedTaskbarIds((prev) => prev.filter((pinnedId) => pinnedId !== id));
+  }
 
   useEffect(() => {
     if (sortBy) localStorage.setItem(SORT_STORAGE_KEY, sortBy);
@@ -553,13 +579,65 @@ export function Desktop() {
     setTextFiles((prev) => prev.filter((f) => f.id !== id));
   }
 
-  // Every open window — app, folder, or text file — gets a taskbar entry.
-  // Folder/text-file ids are prefixed at creation time, so dispatch by prefix
-  // instead of searching all three arrays.
-  const taskbarItems: TaskbarItem[] = [
-    ...windows.filter((w) => w.open).map((w) => ({ id: w.id, icon: w.icon, title: w.title })),
-    ...folders.filter((f) => f.open).map((f) => ({ id: f.id, icon: f.icon, title: f.title })),
-    ...textFiles.filter((f) => f.open).map((f) => ({ id: f.id, icon: f.icon, title: f.title })),
+  // Every window/folder/text file regardless of open state, for the taskbar
+  // search box and as a lookup for pinned-but-closed taskbar icons.
+  const searchItems: TaskbarItem[] = [
+    ...windows.map((w) => ({ id: w.id, icon: w.icon, title: w.title })),
+    ...folders.map((f) => ({ id: f.id, icon: f.icon, title: f.title })),
+    ...textFiles.map((f) => ({ id: f.id, icon: f.icon, title: f.title })),
+  ];
+  const itemsById = new Map(searchItems.map((item) => [item.id, item]));
+
+  const openIds = new Set<string>([
+    ...windows.filter((w) => w.open).map((w) => w.id as string),
+    ...folders.filter((f) => f.open).map((f) => f.id),
+    ...textFiles.filter((f) => f.open).map((f) => f.id),
+  ]);
+  const pinnedSet = new Set(pinnedTaskbarIds);
+
+  // Pinned apps stay in the taskbar even when closed, in pin order, each as
+  // its own slot. Windows (built-in apps) are single-instance so each open
+  // one also gets its own slot. Folders and text files aren't — like Windows
+  // grouping multiple File Explorer windows under one icon, every open,
+  // unpinned instance of the same kind collapses into a single slot that
+  // opens a small picker when there's more than one.
+  const pinnedSlots: TaskbarIcon[] = pinnedTaskbarIds
+    .filter((id) => itemsById.has(id))
+    .map((id) => {
+      const item = itemsById.get(id)!;
+      return { ...item, open: openIds.has(id), pinned: true, members: [item] };
+    });
+
+  const openWindowSlots: TaskbarIcon[] = windows
+    .filter((w) => w.open && !pinnedSet.has(w.id))
+    .map((w) => {
+      const item = itemsById.get(w.id)!;
+      return { ...item, open: true, pinned: false, members: [item] };
+    });
+
+  function groupedSlots(ids: string[], icon: string, title: string): TaskbarIcon[] {
+    const unpinned = ids.filter((id) => !pinnedSet.has(id));
+    if (unpinned.length === 0) return [];
+    const members = unpinned.map((id) => itemsById.get(id)!);
+    if (members.length === 1) {
+      return [{ ...members[0], open: true, pinned: false, members }];
+    }
+    return [{ id: `group:${title}`, icon, title, open: true, pinned: false, members }];
+  }
+
+  const taskbarItems: TaskbarIcon[] = [
+    ...pinnedSlots,
+    ...openWindowSlots,
+    ...groupedSlots(
+      folders.filter((f) => f.open).map((f) => f.id),
+      "📁",
+      "File Explorer"
+    ),
+    ...groupedSlots(
+      textFiles.filter((f) => f.open).map((f) => f.id),
+      "📝",
+      "Notepad"
+    ),
   ];
 
   function selectTaskbarItem(id: string) {
@@ -746,7 +824,23 @@ export function Desktop() {
       ))}
 
       <StartMenu visible={startOpen} windows={windows} onSelect={openWindow} />
-      <Taskbar items={taskbarItems} onToggleStart={() => setStartOpen((v) => !v)} onSelectItem={selectTaskbarItem} />
+      <Taskbar
+        items={taskbarItems}
+        searchItems={searchItems}
+        onToggleStart={() => setStartOpen((v) => !v)}
+        onSelectItem={selectTaskbarItem}
+        onItemContextMenu={(item, x, y) =>
+          setContextMenu({
+            x,
+            y,
+            items: [
+              item.pinned
+                ? { label: "Unpin from taskbar", onClick: () => unpinFromTaskbar(item.id) }
+                : { label: "Pin to taskbar", onClick: () => pinToTaskbar(item.id) },
+            ],
+          })
+        }
+      />
 
       {contextMenu && (
         <ContextMenu

@@ -21,7 +21,7 @@ export function Window({ state, onClose, onMinimize, onMaximize, onFocus, onMove
   return (
     <div
       className={`absolute flex flex-col overflow-hidden bg-neutral-100 shadow-window ring-1 ring-black/5 animate-[winopen_0.18s_ease] ${
-        state.maximized ? "inset-0 bottom-[52px]" : "rounded-xl"
+        state.maximized ? "inset-0 bottom-[52px]" : "rounded-lg"
       }`}
       style={
         state.maximized
@@ -31,39 +31,37 @@ export function Window({ state, onClose, onMinimize, onMaximize, onFocus, onMove
       onMouseDown={onFocus}
     >
       <div
-        className={`flex items-center justify-between bg-gradient-to-b from-[#3f4a70] to-winbar px-3.5 py-2.5 text-sm font-semibold text-white ${
+        className={`flex h-9 items-stretch justify-between bg-gradient-to-b from-[#3f4a70] to-winbar text-sm font-semibold text-white ${
           state.maximized ? "cursor-default" : "cursor-grab active:cursor-grabbing"
         }`}
         onPointerDown={(e) => !state.maximized && onPointerDown(e, { x: state.x, y: state.y })}
         onDoubleClick={onMaximize}
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 px-3.5">
           <span>{state.icon}</span>
           <span className="tracking-tight">{state.title}</span>
         </div>
-        <div className="group/traffic flex gap-1.5">
+        <div className="flex items-stretch">
           <button
-            className="flex h-3 w-3 items-center justify-center rounded-full bg-yellow-400 leading-none transition hover:brightness-110 active:brightness-95"
+            className="flex w-11 items-center justify-center text-white/80 transition-colors hover:bg-white/10 hover:text-white"
             onClick={onMinimize}
             aria-label="minimize"
           >
-            <span className="text-[8px] text-yellow-900 opacity-0 group-hover/traffic:opacity-100">−</span>
+            <span className="block h-px w-2.5 bg-current" />
           </button>
           <button
-            className="flex h-3 w-3 items-center justify-center rounded-full bg-green-500 leading-none transition hover:brightness-110 active:brightness-95"
+            className="flex w-11 items-center justify-center text-white/80 transition-colors hover:bg-white/10 hover:text-white"
             onClick={onMaximize}
             aria-label="maximize"
           >
-            <span className="text-[8px] text-green-900 opacity-0 group-hover/traffic:opacity-100">
-              {state.maximized ? "❐" : "+"}
-            </span>
+            <span className="text-[11px] leading-none">{state.maximized ? "❐" : "□"}</span>
           </button>
           <button
-            className="flex h-3 w-3 items-center justify-center rounded-full bg-red-500 leading-none transition hover:brightness-110 active:brightness-95"
+            className="flex w-11 items-center justify-center text-white/80 transition-colors hover:bg-red-600 hover:text-white"
             onClick={onClose}
             aria-label="close"
           >
-            <span className="text-[8px] text-red-900 opacity-0 group-hover/traffic:opacity-100">×</span>
+            <span className="text-sm leading-none">×</span>
           </button>
         </div>
       </div>

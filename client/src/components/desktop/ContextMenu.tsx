@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 export interface ContextMenuItem {
   label: string;
@@ -21,6 +21,21 @@ const itemClass =
 export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
   const [openSubmenu, setOpenSubmenu] = useState<number | null>(null);
   const closeTimer = useRef<number | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState({ left: x, top: y });
+
+  // Menus opened near a screen edge (e.g. right-clicking a taskbar icon,
+  // which sits right at the bottom of the viewport) would otherwise render
+  // partially off-screen — clamp back inside once we know the real size.
+  useLayoutEffect(() => {
+    const el = menuRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const margin = 8;
+    const left = Math.min(x, Math.max(margin, window.innerWidth - rect.width - margin));
+    const top = Math.min(y, Math.max(margin, window.innerHeight - rect.height - margin));
+    setPos({ left, top });
+  }, [x, y]);
 
   function cancelClose() {
     if (closeTimer.current !== null) {
@@ -44,8 +59,9 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
         }}
       />
       <div
+        ref={menuRef}
         className="fixed z-[10000] flex w-[190px] flex-col gap-0.5 rounded-lg border border-[#2b3550] bg-taskbar p-1.5 shadow-window animate-[winopen_0.15s_ease]"
-        style={{ left: x, top: y }}
+        style={{ left: pos.left, top: pos.top }}
       >
         {items.map((item, i) => (
           <div

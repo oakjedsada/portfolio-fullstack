@@ -4,6 +4,9 @@ import { useDraggable } from "../../hooks/useDraggable";
 
 export type IconSize = "small" | "medium" | "large";
 
+/** Box width in px per size — used elsewhere (e.g. FolderContents' grid columns) to stay in sync. */
+export const ICON_BOX_WIDTH: Record<IconSize, number> = { small: 76, medium: 90, large: 104 };
+
 const SIZE_STYLES: Record<IconSize, { box: string; icon: string; iconText: string; label: string; input: string }> = {
   small: { box: "h-20 w-[76px]", icon: "h-8 w-8", iconText: "text-base", label: "text-[10px]", input: "w-[70px]" },
   medium: { box: "h-24 w-[90px]", icon: "h-11 w-11", iconText: "text-xl", label: "text-xs", input: "w-[84px]" },
